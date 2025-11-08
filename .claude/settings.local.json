@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit:*)",
+      "Bash(lsof:*)",
+      "Bash(node /tmp/test-rococo-connection.mjs:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx node test-rococo-connection.mjs)",
+      "Bash(npx node:*)",
+      "WebSearch"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

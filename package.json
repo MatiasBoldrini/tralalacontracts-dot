@@ -1,0 +1,54 @@
+{
+  "name": "tralalacontracts-dot",
+  "version": "1.0.0",
+  "description": "Plataforma visual para crear contratos inteligentes en Polkadot",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "lint": "tsc --noEmit && echo 'TypeScript check passed'"
+  },
+  "keywords": [
+    "polkadot",
+    "smart-contracts",
+    "blockly",
+    "web3"
+  ],
+  "author": "Matias Boldrini",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@vitest/ui": "^4.0.6",
+    "happy-dom": "^20.0.10",
+    "vitest": "^4.0.6"
+  },
+  "dependencies": {
+    "@blockly/dev-tools": "^9.0.2",
+    "@blockly/field-slider": "^8.0.2",
+    "@blockly/theme-modern": "^7.0.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@polkadot/api": "^16.4.8",
+    "@polkadot/extension-dapp": "^0.62.1",
+    "@polkadot/util": "^13.5.6",
+    "@polkadot/util-crypto": "^13.5.6",
+    "@types/react": "^19.1.15",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "blockly": "^12.3.1",
+    "framer-motion": "^12.23.22",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
+  }
+}
