@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Box, Container, Typography, Stepper, Step, StepLabel, StepContent } from '@mui/material'
+import { Box, Container, Typography } from '@mui/material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   WalletConnection, 
@@ -136,45 +136,108 @@ const HomePage: React.FC = () => {
           </Typography>
         </motion.div>
 
-        <Stepper activeStep={activeStep} orientation="vertical">
-          {steps.map((step, index) => (
-            <Step key={step.label}>
-              <StepLabel
+        {/* Custom Stepper */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            mb: 4,
+            maxWidth: '800px',
+            position: 'relative',
+            mx: 'auto',
+          }}
+        >
+          {/* Background Line */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 20,
+              left: '5%',
+              right: '5%',
+              height: '2px',
+              backgroundColor: '#E5E5E5',
+              zIndex: 1,
+            }}
+          />
+
+          {/* Steps */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-around',
+              width: '100%',
+              position: 'relative',
+              zIndex: 2,
+            }}
+          >
+            {steps.map((step, index) => (
+              <Box
+                key={step.label}
                 onClick={() => handleStepClick(index)}
                 sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
                   cursor: index <= activeStep ? 'pointer' : 'default',
-                  '& .MuiStepLabel-label': {
-                    fontSize: '1.25rem',
-                    fontWeight: 600,
-                    color: index <= activeStep ? 'primary.main' : 'text.disabled',
-                  },
-                  '& .MuiStepLabel-iconContainer': {
-                    cursor: index <= activeStep ? 'pointer' : 'default',
-                  },
+                  px: 1,
                 }}
               >
-                {step.label}
-              </StepLabel>
-              <StepContent>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                  {step.description}
+                {/* Step Number Circle */}
+                <Box
+                  sx={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: activeStep >= index ? '#0047AB' : '#E5E5E5',
+                    color: activeStep >= index ? 'white' : '#666',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    mb: 1,
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  {index + 1}
+                </Box>
+
+                {/* Step Label */}
+                <Typography
+                  sx={{
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    color: '#000000',
+                    textAlign: 'center',
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+                    maxWidth: '70px',
+                  }}
+                >
+                  {step.label}
                 </Typography>
-                
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeStep}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {renderStepContent(index)}
-                  </motion.div>
-                </AnimatePresence>
-              </StepContent>
-            </Step>
-          ))}
-        </Stepper>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 4, mb: 4 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+            {steps[activeStep].description}
+          </Typography>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderStepContent(activeStep)}
+            </motion.div>
+          </AnimatePresence>
+        </Box>
       </Container>
     </Box>
   )

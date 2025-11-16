@@ -340,7 +340,7 @@ export const useContractDeployment = () => {
 
             // Paso 3: Estimar gas
             setDeploymentProgress({ step: 3, message: 'Estimando gas requerido...' })
-            const gasEstimate = estimateDeploymentGas(contractCode)
+            estimateDeploymentGas(contractCode)
 
             // Paso 4: Construir transacción para crear Asset/Token
             setDeploymentProgress({ step: 4, message: 'Preparando creación de asset...' })
