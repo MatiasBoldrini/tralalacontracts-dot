@@ -254,6 +254,8 @@ export const estimateDeploymentGas = (contractCode: string): GasEstimate => {
 /**
  * Construye una transacción de deployment de contrato para Polkadot
  * Retorna el objeto de transacción listo para firmar
+ *
+ * Usa Weight v2 (refTime + proofSize) - requerido en Polkadot Paseo (2024+)
  */
 export const buildDeploymentTransaction = (
   api: any,
@@ -267,14 +269,38 @@ export const buildDeploymentTransaction = (
       throw new Error('API de Polkadot no está disponible')
     }
 
-    // Para Polkadot, usamos el pallet 'contracts' para desplegar contratos EVM
-    // Estructura de la transacción:
-    const tx = api.tx.contracts.instantiate(
+    // Importar BN para crear números grandes (necesario para Weight v2)
+    const { BN } = require('@polkadot/util')
+
+    // IMPORTANTE: Polkadot usa Weight v2 que requiere BOTH refTime y proofSize
+    // refTime: tiempo de referencia en picosegundos
+    // proofSize: tamaño máximo de storage leído en bytes
+
+    // Crear el objeto WeightV2 correctamente
+    const gasLimitNumber = BigInt(gasLimit)
+    const refTime = new BN(gasLimitNumber.toString()).mul(new BN('1000000')) // Convertir a picosegundos (factor ~1M)
+    const proofSize = new BN('1000000') // 1 MB de almacenamiento máximo
+
+    const weightV2 = api.registry.createType('WeightV2', {
+      refTime: refTime,
+      proofSize: proofSize
+    })
+
+    // Usar instantiateWithCode que acepta bytecode directamente
+    // Parámetros en orden correcto para Paseo testnet:
+    // 1. value (sin fondos)
+    // 2. gasLimit (WeightV2)
+    // 3. storageDepositLimit (null = ilimitado)
+    // 4. code (bytecode WASM)
+    // 5. data (constructor args - vacío)
+    // 6. salt (vacío para dirección aleatoria)
+    const tx = api.tx.contracts.instantiateWithCode(
       0, // value: sin transferencia de fondos
-      BigInt(gasLimit), // gas_limit
-      null, // storage_deposit_limit
-      bytecode, // code
-      [] // data (constructor arguments - empty)
+      weightV2, // gas_limit: WeightV2 con refTime y proofSize
+      null, // storage_deposit_limit: null = ilimitado
+      bytecode, // code: bytecode del contrato
+      new Uint8Array(), // data: argumentos del constructor (vacío)
+      new Uint8Array() // salt: para derivación de dirección determinística (vacío = aleatorio)
     )
 
     return tx

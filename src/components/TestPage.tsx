@@ -41,7 +41,7 @@ const TestPage: React.FC<TestPageProps> = ({
   const [writeFunction, setWriteFunction] = useState('')
   const [writeParams, setWriteParams] = useState('')
 
-  // Verificar que estamos en la red correcta (testnet Paseo)
+  // Verificar que estamos en la red correcta (testnet Pop Network)
   const isCorrectNetwork = true // En una implementación real, verificaríamos la red
 
   useEffect(() => {
@@ -175,7 +175,7 @@ const TestPage: React.FC<TestPageProps> = ({
                       sx={{ mb: 2 }}
                     >
                       <Typography variant="body2">
-                        <strong>Red:</strong> {isCorrectNetwork ? 'Testnet Paseo (Correcta)' : 'Red incorrecta'}
+                        <strong>Red:</strong> {isCorrectNetwork ? 'Pop Network Testnet (Correcta)' : 'Red incorrecta'}
                       </Typography>
                     </Alert>
                   </Box>
@@ -345,7 +345,7 @@ const TestPage: React.FC<TestPageProps> = ({
                     variant="outlined"
                   />
                   <Chip
-                    label="Testnet Paseo"
+                    label="Pop Network"
                     color="primary"
                     variant="outlined"
                   />

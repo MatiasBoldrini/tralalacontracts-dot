@@ -1,5 +1,5 @@
 // Plantillas de contratos inteligentes para Polkadot
-// Cumple con las reglas del hackathon: Solidity ^0.8.28, testnet Paseo
+// Cumple con las reglas del hackathon: Solidity ^0.8.28, testnet Pop Network
 
 /**
  * Sanitiza un nombre de contrato para que sea válido en Solidity

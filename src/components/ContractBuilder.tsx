@@ -237,28 +237,46 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ onCodeGenerated, onNe
   }
 
   const handleWizardTemplate = (template: WizardTemplate) => {
+    console.log(`📋 Seleccionando plantilla: ${template.name}`)
     setSelectedWizardTemplate(template)
     setSelectedFeatures([template.id])
     setMainTab('blockly')
+    setContractName(template.name)
 
-    // Esperar a que Blockly esté listo
+    // Generar código inmediatamente usando el template generator
+    // Esto asegura que el código esté disponible incluso si Blockly falla
+    const config: ContractConfig = {
+      name: template.name,
+      symbol: template.name.substring(0, 3).toUpperCase(),
+    }
+    const generatedCode = generateContractByType(template.id, config)
+    setGeneratedCode(generatedCode)
+    onCodeGenerated(generatedCode)
+    console.log(`✅ Código generado inmediatamente para "${template.name}"`)
+
+    // Esperar a que Blockly esté listo para cargar los bloques visuales
     setTimeout(() => {
       if (workspace.current) {
         try {
           // Limpiar workspace
           workspace.current.clear()
-          // Cargar plantilla
+          // Cargar plantilla visual
           loadWizardTemplate(workspace.current, template)
-          console.log(`Plantilla "${template.name}" cargada exitosamente`)
+          console.log(`✅ Bloques visuales cargados para "${template.name}"`)
         } catch (error) {
-          console.error('Error cargando plantilla:', error)
+          console.warn('Error cargando bloques visuales (el código ya fue generado):', error)
         }
       } else {
-        // Si Blockly aún no está listo, inicializarlo y luego cargar plantilla
+        // Si Blockly aún no está listo, intentar de nuevo
         setTimeout(() => {
           if (workspace.current) {
-            workspace.current.clear()
-            loadWizardTemplate(workspace.current, template)
+            try {
+              workspace.current.clear()
+              loadWizardTemplate(workspace.current, template)
+              console.log(`✅ Bloques visuales cargados para "${template.name}" (segundo intento)`)
+            } catch (error) {
+              console.warn('Error cargando bloques visuales en segundo intento:', error)
+            }
           }
         }, 500)
       }
@@ -367,53 +385,93 @@ const ContractBuilder: React.FC<ContractBuilderProps> = ({ onCodeGenerated, onNe
   }
 
   const generateCode = () => {
+    console.log('🏗️ generateCode() iniciado')
+    let finalCode = ''
+
     try {
       if (workspace.current) {
         // Generar código desde Blockly
+        console.log('🔧 Generando desde Blockly workspace')
         const code = generateSolidityCode(workspace.current, contractName || 'MyContract')
-        setGeneratedCode(code)
-        onCodeGenerated(code)
+        finalCode = code
       } else {
         // Generar código usando plantillas basadas en wizard o features seleccionadas
+        console.log('📋 Generando desde plantillas (no hay workspace)')
         let solidityCode = ''
 
         if (selectedFeatures.length === 1 && selectedFeatures[0] !== 'manual') {
-          // Si viene de wizard, usar el template del wizard
-          const wizardTemplate = WIZARD_TEMPLATES.find(t => {
-            // Mapear feature IDs a wizard template IDs
+          const featureId = selectedFeatures[0]
+          console.log(`📌 Feature única seleccionada: ${featureId}`)
+
+          // Check if this is already a wizard template ID (e.g., 'nft-collection', 'token-erc20')
+          const isWizardTemplateId = WIZARD_TEMPLATES.some(t => t.id === featureId)
+
+          if (isWizardTemplateId) {
+            // Direct wizard template - use it directly
+            const config: ContractConfig = {
+              name: contractName || 'MyContract',
+              symbol: contractName?.substring(0, 3).toUpperCase() || 'MC',
+            }
+            solidityCode = generateContractByType(featureId, config)
+            console.log(`✅ Código generado desde wizard template: ${featureId}`)
+          } else {
+            // It's a feature ID - try to map to wizard template
             const featureToWizardMap: Record<string, string> = {
               'loyalty': 'loyalty-rewards',
               'certificates': 'nft-collection',
               'governance': 'governance-dao',
               'marketplace': 'marketplace',
             }
-            return t.id === featureToWizardMap[selectedFeatures[0]]
-          })
+            const wizardTemplateId = featureToWizardMap[featureId]
 
-          if (wizardTemplate) {
-            const config: ContractConfig = {
-              name: contractName || 'MyContract',
-              symbol: contractName?.substring(0, 3).toUpperCase() || 'MC',
+            if (wizardTemplateId) {
+              const config: ContractConfig = {
+                name: contractName || 'MyContract',
+                symbol: contractName?.substring(0, 3).toUpperCase() || 'MC',
+              }
+              solidityCode = generateContractByType(wizardTemplateId, config)
+              console.log(`✅ Código generado desde feature mapeada: ${featureId} -> ${wizardTemplateId}`)
+            } else {
+              // Unknown feature - generate basic contract
+              const config: ContractConfig = {
+                name: contractName || 'MyContract',
+              }
+              solidityCode = generateContractByType('basic', config)
+              console.log(`⚠️ Feature desconocida, generando contrato básico`)
             }
-
-            solidityCode = generateContractByType(wizardTemplate.id, config)
           }
         } else if (selectedFeatures.length > 1) {
           // Si hay múltiples features, generar contrato combinado
+          console.log(`🔀 Múltiples features (${selectedFeatures.length}), generando contrato combinado`)
           solidityCode = generateCombinedContract()
         } else {
           // Si no hay features seleccionadas o es manual, generar contrato básico
+          console.log(`📝 Generando contrato básico por defecto`)
           const config: ContractConfig = {
             name: contractName || 'MyContract',
           }
           solidityCode = generateContractByType('basic', config)
         }
 
-        setGeneratedCode(solidityCode)
-        onCodeGenerated(solidityCode)
+        finalCode = solidityCode
       }
+
+      // Asegurar que hay código generado
+      if (!finalCode || finalCode.trim().length === 0) {
+        console.warn('⚠️ No se generó código, usando fallback')
+        const config: ContractConfig = {
+          name: contractName || 'MyContract',
+        }
+        finalCode = generateContractByType('basic', config)
+      }
+
+      console.log(`✅ Código final generado (${finalCode.length} caracteres)`)
+      setGeneratedCode(finalCode)
+      onCodeGenerated(finalCode)
+
+      return finalCode
     } catch (error: unknown) {
-      console.error('Error generating code:', error)
+      console.error('❌ Error generating code:', error)
       const msg = error instanceof Error ? error.message : String(error)
       const errorCode = `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
@@ -437,6 +495,7 @@ contract ${contractName || 'MyContract'} {
 }`
       setGeneratedCode(errorCode)
       onCodeGenerated(errorCode)
+      return errorCode
     }
   }
 
@@ -610,17 +669,32 @@ contract ${contractName} {
   }
 
   const handleNext = () => {
+    console.log('🔄 handleNext llamado')
+    console.log('📦 selectedFeatures:', selectedFeatures)
+    console.log('📝 contractName:', contractName)
+    console.log('💻 generatedCode length:', generatedCode.length)
+
     if (selectedFeatures.length === 0) {
+      console.warn('⚠️ No hay features seleccionadas')
       return
     }
-    
+
     if (!contractName) {
+      console.log('⚠️ No hay nombre de contrato, mostrando diálogo')
       setShowNameDialog(true)
       return
     }
-    
-    generateCode()
-    onNext()
+
+    // Generar código antes de continuar
+    console.log('⚙️ Generando código...')
+    const code = generateCode()
+
+    // Dar tiempo a que el estado se actualice antes de continuar
+    setTimeout(() => {
+      console.log('✅ Código generado, continuando al deployment')
+      console.log('📄 Código a deployar:', code.substring(0, 100) + '...')
+      onNext()
+    }, 100)
   }
 
   const handleNameConfirm = () => {

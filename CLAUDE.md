@@ -4,290 +4,187 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Tralala Contracts** is a visual platform for creating smart contracts on Polkadot using a Blockly-based interface. Developed for LATIN HACK 2024, it enables users to create Solidity smart contracts without writing code by dragging and connecting visual blocks.
-
-### Key Features
-- Visual contract builder using Blockly
-- Real-time Solidity code generation
-- Polkadot testnet (Paseo) deployment
-- Support for multiple wallet types (Talisman, Polkadot.js, SubWallet)
-- Contract testing interface at `/test` route
-- Pre-built contract templates (Token, NFT, DAO, Marketplace)
+**Tralala Contracts** is a visual platform for creating and deploying smart contracts on Polkadot without requiring programming experience. It uses Blockly for visual contract design and integrates with the Polkadot ecosystem for deployment and wallet management.
 
 ## Development Commands
 
+### Installation & Setup
 ```bash
-# Development server (runs on http://localhost:3000 with auto-open)
-npm run dev
-
-# Production build
-npm run build
-
-# Preview production build locally
-npm run preview
-
-# Type checking (TypeScript)
-npm run type-check
+npm install
 ```
 
-## Architecture Overview
+### Development
+```bash
+npm run dev          # Start Vite dev server on port 3000
+npm run type-check   # Run TypeScript type checking
+npm run lint         # Run type checking via lint
+```
 
-### Tech Stack
-- **Frontend**: React 18 + TypeScript
-- **UI Framework**: Material-UI (MUI) with custom theme
-- **Visual Builder**: Blockly 12.3.1
-- **Blockchain**: Polkadot.js API
-- **Build Tool**: Vite
-- **Styling**: Emotion (CSS-in-JS) + Material-UI
+### Build & Preview
+```bash
+npm run build        # TypeScript compilation + Vite build → dist/
+npm run preview      # Preview built application locally
+```
+
+### Testing
+```bash
+npm test             # Run unit tests with Vitest
+npm run test:ui      # Run tests with UI dashboard
+npm run test:e2e     # Run Playwright end-to-end tests
+npm run test:e2e:ui  # Run E2E tests with UI
+npm run test:e2e:debug # Debug E2E tests
+```
+
+## Architecture
 
 ### High-Level Structure
 
-```
-src/
-├── components/          # React UI components
-│   ├── ContractBuilder.tsx       # Main Blockly workspace component
-│   ├── ContractVisualizer.tsx    # View deployed contracts
-│   ├── DeploymentPanel.tsx       # Contract deployment interface
-│   ├── TestPage.tsx              # Contract testing page (required by hackathon)
-│   ├── WalletConnection.tsx      # Wallet connection UI
-│   └── SubWalletHelper.tsx       # SubWallet integration helper
-├── hooks/              # React hooks
-│   └── usePolkadot.ts            # Wallet and API connection hooks
-├── pages/              # Page-level components
-│   └── HomePage.tsx              # Main entry point with step navigation
-├── config/             # Application configuration
-│   └── polkadot.ts               # Network, wallet, and app config
-├── utils/              # Utility functions
-│   ├── blocklyConfig.ts          # Blockly block definitions and toolbox
-│   └── contractTemplates.ts      # Pre-built contract templates
-├── shared/             # Reusable components
-│   ├── Header.tsx                # App header with branding
-│   ├── VideoHeader.tsx           # Video background component
-│   └── TralalaIcon.tsx           # Custom icon component
-├── types/              # TypeScript type definitions
-└── main.tsx            # React entry point with MUI theme setup
-```
+The application follows a feature-based structure:
 
-### Core Data Flow
+- **`src/pages/`** - Main page components (HomePage is the entry point)
+- **`src/components/`** - Feature components:
+  - `ContractBuilder.tsx` - Blockly-based visual contract editor
+  - `ContractWizard.tsx` - Guided contract creation workflow
+  - `ContractVisualizer.tsx` - Displays deployed contract details
+  - `DeploymentPanel.tsx` - Contract deployment and progress tracking
+  - `WalletConnection.tsx` - Wallet connection and account selection
+  - `SubWalletHelper.tsx` - SubWallet integration helpers
+- **`src/hooks/`** - Custom React hooks for Polkadot integration:
+  - `usePolkadot()` - Wallet extension connection and account management
+  - `usePolkadotApi()` - API connection with endpoint fallback logic
+  - `useTransaction()` - Transaction signing and submission
+  - `useContractDeployment()` - Full contract deployment workflow
+- **`src/utils/`** - Utility functions:
+  - `deploymentUtils.ts` - Contract compilation, gas estimation, bytecode generation
+  - `blocklyConfig.ts` - Blockly block definitions and configuration
+  - `contractTemplates.ts` - Pre-built contract templates
+  - `blocklyWizard.ts` - Blockly workspace helpers
+- **`src/config/`** - Configuration:
+  - `polkadot.ts` - Network config (Pop Network testnet), wallet definitions, messages
+- **`src/types/`** - TypeScript interfaces for types like `WalletAccount`, `DeployedContract`, `GeneratedContract`
+- **`src/shared/`** - Shared components (Header, Icons, etc.)
 
-1. **Wallet Connection**: `usePolkadot()` hook → manages wallet connection via Polkadot extension
-2. **Step Navigation**: `HomePage` component controls 4-step flow:
-   - Step 1: Wallet connection (WalletConnection)
-   - Step 2: Contract design (ContractBuilder with Blockly)
-   - Step 3: Deployment (DeploymentPanel)
-   - Step 4: Visualization (ContractVisualizer)
-3. **Code Generation**: Blockly blocks → Solidity code (real-time in ContractBuilder)
-4. **Deployment**: Generated contract → signed transaction via wallet → Polkadot testnet
+### Key Data Flows
 
-### Key Components
+**Wallet Connection:**
+1. User clicks "Connect Wallet" → `WalletConnection` component
+2. `usePolkadot()` hook initializes via `web3Enable()` (Polkadot extension-dapp)
+3. Available accounts fetched and displayed
+4. Selected account passed to deployment workflow
 
-#### usePolkadot Hook (`src/hooks/usePolkadot.ts`)
-Three related hooks:
-- `usePolkadot()`: Manages wallet extension connection and account selection
-- `usePolkadotApi()`: Connects to Polkadot Hub TestNet node
-- `useTransaction()`: Handles transaction signing and sending
+**Contract Deployment:**
+1. User designs contract in Blockly (`ContractBuilder`)
+2. Code generated from visual blocks
+3. `useContractDeployment()` handles multi-step deployment:
+   - Validation of Solidity code
+   - Compilation to bytecode via `compileContract()`
+   - Gas estimation via `estimateDeploymentGas()`
+   - Transaction creation using Polkadot contracts pallet (`api.tx.contracts.instantiate()`)
+   - Signing via wallet extension (`web3FromSource()`)
+   - Status tracking through blockchain events
+4. Result displayed in `ContractVisualizer`
 
-#### ContractBuilder (`src/components/ContractBuilder.tsx`)
-- Integrates Blockly workspace with custom contract blocks
-- Generates Solidity code from block configuration
-- Supports template-based contract scaffolding
+**Network Configuration:**
+- Primary endpoint: Pop Network Testnet (Polkadot contracts testnet on Paseo)
+- Fallback endpoints configured in `POLKADOT_CONFIG.network.wsUrlFallbacks`
+- `usePolkadotApi()` implements retry logic with 10-second timeout per endpoint
+- Connection automatically attempted on app mount
 
-#### Configuration (`src/config/polkadot.ts`)
-- Network config: Polkadot Hub TestNet (chain ID: 420420422)
-- RPC: `https://testnet-passet-hub-eth-rpc.polkadot.io`
-- WebSocket: `wss://testnet-passet-hub-rpc.polkadot.io`
-- Explorer: Blockscout integration for verification
-- Supported wallets: Talisman, Polkadot.js, SubWallet
-- Blockly block categories: Token, NFT, Voting, Marketplace, Logic, Math, Text, Control
+### Important Type System
 
-### Theme & Styling
+Key TypeScript interfaces in `src/types/index.ts`:
+- `WalletAccount` - User wallet account from extension
+- `GeneratedContract` - Smart contract with code, ABI, features
+- `DeployedContract` - Deployed contract with blockchain metadata (address, tx hash, block info)
+- `ContractFeature` - Feature category (token, NFT, DAO, DeFi, utility)
+- `PolkadotNetwork` - Network configuration with RPC endpoints
+- `CompilationMetadata` - Compilation output (bytecode, ABI, function list)
 
-**Theme defined in `src/main.tsx`**:
-- Primary: Indigo (#6366f1)
-- Secondary: Pink (#ec4899)
-- Custom MUI component overrides for buttons and cards
-- Inter font family with custom typography scale
+### UI Framework & Styling
 
-Material-UI theme is applied globally via `ThemeProvider` in `main.tsx`.
+- **React 19** with TypeScript
+- **Material-UI (MUI 7)** for components and theming
+- **Emotion** for CSS-in-JS styling
+- **Framer Motion** for animations
+- Custom Material-UI theme defined in `src/main.tsx` (indigo primary, pink secondary)
+- Responsive design via MUI Grid/Box components
 
-## Important Implementation Notes
+### Configuration & Constants
 
-### Blockly Integration
-- Blockly blocks are defined in `src/utils/blocklyConfig.ts`
-- Custom block types for contract features (tokens, NFTs, DAO, marketplace)
-- Code generation from blocks uses Blockly's built-in code generation
-- Block toolbox organized by category with color coding
+All user-facing strings, Polkadot network settings, and UI config centralized in `src/config/polkadot.ts`:
+- `POLKADOT_CONFIG` - Network endpoints, wallet support, deployment settings
+- `BLOCKLY_CONTRACT_CONFIG` - Block categories and code generation settings
+- `APP_MESSAGES` - Error/success messages in Spanish
+- `UI_CONFIG` - Theme colors and animation settings
 
-### Wallet Integration
-- Uses Polkadot extension dapp library for wallet communication
-- Lazy imports of `@polkadot/extension-dapp` to avoid blocking app load
-- Automatic account detection on component mount
-- Error handling for missing wallets or accounts
+### Polkadot Integration Details
 
-### Solidity Code Generation
-- Templates stored in `src/utils/contractTemplates.ts`
-- Version: ^0.8.28 (SPDX-License-Identifier: MIT)
-- Generated contracts include standard patterns (Token=ERC20, NFT=ERC721 style)
+**Extension Communication:**
+- Uses `@polkadot/extension-dapp` for browser wallet integration
+- Supports Talisman, Polkadot.js, SubWallet extensions
+- Accounts accessed via `web3Accounts()`
+- Signing via `web3FromSource()` returns signer interface
 
-### Deployment Flow
-- Uses `@polkadot/api` for blockchain communication
-- Transactions signed client-side by wallet
-- Block explorer URLs automatically generated for deployed contracts
-- Gas settings: limit 5M, price 1 Gwei (configurable in `POLKADOT_CONFIG`)
+**API Connection:**
+- `@polkadot/api` with `WsProvider` for WebSocket connections
+- Contracts pallet used for deployment: `api.tx.contracts.instantiate()`
+- Event subscriptions for transaction status tracking
+- Automatic cleanup on unmount via `disconnect()`
 
-## File Modification Guidelines
+**Contract Compilation:**
+- Solidity validation (pragma, contract keyword, brace matching)
+- Simulated bytecode generation (not a full compiler)
+- Basic ABI generation from function/event extraction
+- Real deployment uses generated bytecode with Polkadot contracts pallet
 
-### When Adding New Features
+## Testing
 
-**New Blockly Block Types**:
-1. Define block in `src/utils/blocklyConfig.ts` (add to CUSTOM_BLOCKS)
-2. Add category to toolbox in blockly config if needed
-3. Implement code generator if not using existing Blockly blocks
+Tests located in `src/utils/__tests__/`:
+- `deploymentUtils.test.ts` - Unit tests for compilation and gas estimation
+- `integration.test.ts` - Integration tests for deployment workflow
 
-**New Contract Template**:
-1. Add template to `src/utils/contractTemplates.ts`
-2. Add feature definition to `src/types/index.ts` if needed
-3. Update BLOCKLY_CONTRACT_CONFIG categories if applicable
+Run tests before committing significant changes.
 
-**New Page/Route**:
-1. Create component in `src/pages/`
-2. Update step navigation in `HomePage.tsx` to include new step
-3. Update APP_MESSAGES in `src/config/polkadot.ts` with UI text
+## Common Development Tasks
 
-**New Hook**:
-1. Add to `src/hooks/usePolkadot.ts` or create new file if significant
-2. Follow existing pattern of returning state, handlers, and error states
-3. Use TypeScript types from `src/types/index.ts`
+### Adding a New Contract Feature/Block
+1. Define block in `src/config/polkadot.ts` under `BLOCKLY_CONTRACT_CONFIG.categories`
+2. Add code generation logic to `src/utils/blocklyWizard.ts`
+3. Update contract templates if applicable in `src/utils/contractTemplates.ts`
 
-### Network Configuration Changes
-All network configs in `src/config/polkadot.ts`:
-- Change `POLKADOT_CONFIG.network` to switch networks
-- Update RPC/WebSocket URLs
-- Adjust gas settings in `deployment` object
+### Debugging Wallet Connection Issues
+1. Check browser console for extension-dapp errors
+2. Verify extension is installed and wallet unlocked
+3. Use `usePolkadot()` hook state (`error`, `isConnected`)
+4. Common issue: Extension not exposed if page loads before extension initializes
 
-### UI/Theme Changes
-- Colors in `main.tsx` ThemeProvider theme object
-- Layout config in `UI_CONFIG` at bottom of `src/config/polkadot.ts`
-- Component-specific styling uses Material-UI's sx prop or Emotion
+### Adding Network Support
+1. Update `POLKADOT_CONFIG.network` in `src/config/polkadot.ts`
+2. Add fallback endpoints to `wsUrlFallbacks` array
+3. Test connection via `usePolkadotApi()` which has retry logic built in
+4. Update explorer URL for block explorer links
 
-## Hackathon Requirements (LATIN HACK 2024)
+### Deployment Troubleshooting
+- Check gas estimate in `estimateDeploymentGas()` is sufficient
+- Monitor deployment progress via `DeploymentPanel` component
+- Contract address in Polkadot is transaction hash (not EVM-style contract address)
+- Explorer links point to Subscan with transaction hash
 
-✅ **Network**: Polkadot Paseo testnet deployment
-✅ **Language**: Solidity ^0.8.28
-✅ **Testing Page**: Available at `/test` (ContractVisualizer component shows test interface)
-✅ **Smart Contracts**: Core functionality - visual builder generates and deploys real contracts
-✅ **Step Navigation**: Clickable steppers between 4 main workflow steps
-✅ **Visual Design**: Full Blockly integration for contract creation
+## Performance Notes
 
-## Build Output
+- **Blockly workspace** is heavy; consider lazy loading or code splitting if adding more features
+- **Network requests** use timeout fallbacks to prevent hanging connections
+- **API subscriptions** cleaned up in component unmount to avoid memory leaks
+- Tests use `happy-dom` environment (lighter than jsdom) for faster test runs
 
-- **Output Directory**: `dist/`
-- **Source Maps**: Enabled in production build
-- **Vite Config**: `vite.config.ts` (port 3000 for dev)
+## Known Limitations & Quirks
 
-## Polkadot Skills & Resources
+1. **Bytecode Generation** - Currently simulated, not using full Solidity compiler
+2. **Contract Address** - Polkadot contracts are referenced by transaction hash, not EVM-style addresses
+3. **Gas Estimation** - Simplified estimation based on code size; actual gas may vary
+4. **Blockly** - Currently using Blockly for design, but generated code is Solidity (for EVM compatibility reference, though deployed to Polkadot)
+5. **Network Dependency** - Relies on Pop Network testnet availability; fallback endpoints configured for redundancy
 
-This project includes comprehensive Polkadot-focused skills and documentation to ensure Claude always uses the latest information from official sources. **Always reference these skills when working with Polkadot** to avoid using outdated documentation.
+## Git Workflow
 
-### 📚 Available Skills
-
-#### 1. **polkadot-documentation** (Primary Resource Index)
-**Use when**: You need to find where something is documented in Polkadot ecosystem
-- Central hub linking to all official documentation
-- Organized by category and use case
-- Ensures you find authoritative sources first
-- Access: `Skill → polkadot-documentation`
-
-#### 2. **polkadot-smart-contracts** (Contract Development)
-**Use when**: Creating or modifying smart contracts, implementing token standards
-- ink! (Rust) contract development
-- Solidity contract development
-- PSP Standards (PSP-20, PSP-34, PSP-37)
-- Best practices and security patterns
-- Access: `Skill → polkadot-smart-contracts`
-
-#### 3. **polkadot-testnet-deployment** (Deployment & Testing)
-**Use when**: Deploying contracts, configuring testnets, getting testnet tokens
-- Testnet configuration (Paseo, Rococo, Polkadot Hub TestNet)
-- Deployment process and verification
-- Gas configuration and limits
-- Transaction monitoring and troubleshooting
-- Access: `Skill → polkadot-testnet-deployment`
-
-#### 4. **polkadot-wallet-integration** (Wallet Connectivity)
-**Use when**: Adding wallet support, fixing connection issues, implementing account management
-- Polkadot.js Extension integration
-- Multi-wallet support (Talisman, SubWallet, Ledger, Nova)
-- Transaction signing and message signing
-- Account management and validation
-- Access: `Skill → polkadot-wallet-integration`
-
-#### 5. **polkadot-performance-optimization** (Performance & Cost Reduction)
-**Use when**: Optimizing contracts, reducing gas costs, improving dApp responsiveness
-- Smart contract gas optimization
-- dApp API call optimization
-- Caching and batching strategies
-- Performance monitoring and metrics
-- Access: `Skill → polkadot-performance-optimization`
-
-### 📖 Central Resources File
-
-**File**: `.claude/POLKADOT_RESOURCES.md`
-- Complete reference with all network configs
-- Link to all official documentation
-- Token standards specifications (PSP-20, PSP-34, PSP-37)
-- Wallet download links and specifications
-- Faucet information
-- Block explorer URLs
-- Quick links organized by use case
-
-### 🎯 When to Use Skills vs Direct Development
-
-**Use Polkadot Skills when**:
-- ❓ You need to find information about Polkadot
-- 🔧 You're working with wallet integration
-- 📝 You're creating smart contracts
-- 🚀 You're deploying to testnet
-- ⚡ You're optimizing performance or gas
-
-**Direct Development when**:
-- ✏️ You're writing application code (not Polkadot-specific)
-- 🎨 You're working with React/UI components
-- 🏗️ You're modifying project architecture
-- 📦 You're managing dependencies
-
-### Example Workflow
-
-When implementing wallet connection:
-```
-1. Read the wallet integration code → src/hooks/usePolkadot.ts
-2. Check Polkadot Wallet Integration skill for latest patterns
-3. Reference polkadot-documentation for official sources
-4. Update/fix the implementation
-5. Verify against POLKADOT_RESOURCES.md for URLs and configs
-```
-
-### Key Features of the Skill System
-
-✅ **Always Uses Latest Documentation**: Skills link to official sources dated 2024
-✅ **Organized by Category**: Different skills for different concerns
-✅ **Complete Network Info**: All testnet configs in one place
-✅ **Standard References**: PSP token standards included
-✅ **Best Practices**: Security, optimization, and performance patterns
-✅ **Community Links**: Discord, forums, GitHub for additional help
-
-### Network Configuration Reference
-
-Current testnet configuration uses **Polkadot Hub TestNet**:
-- Chain ID: 420420422
-- RPC HTTP: https://testnet-passet-hub-eth-rpc.polkadot.io
-- Gas Limit: 5,000,000
-- See `.claude/POLKADOT_RESOURCES.md` for alternatives
-
-### Important Notes
-
-- 🎯 **Before answering Polkadot questions**, check if a skill covers it
-- 📚 **For authoritative information**, always follow skill links to official docs
-- 🔄 **Updates**: Skills are maintained with latest Polkadot developments
-- ⚠️ **Never assume network details** - reference POLKADOT_RESOURCES.md
-- 🌐 **Always verify on official wiki** (wiki.polkadot.network) for definitive answers
+Commits follow conventional format. Use descriptive messages focusing on **why** changes were made, not just **what**.

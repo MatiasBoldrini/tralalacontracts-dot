@@ -1,23 +1,20 @@
-// Configuración de Paseo Testnet (Testnet oficial de Polkadot - Soporta pallet de contratos)
+// Configuración de Asset Hub en Paseo (Red de Polkadot para crear Tokens y NFTs)
+// Asset Hub soporta el pallet de assets para crear tokens nativamente
 export const POLKADOT_CONFIG = {
   network: {
-    name: 'Paseo Testnet',
-    chainId: '0',
-    // Endpoint principal - Dwellir (proveedor recomendado para Paseo 2024)
-    rpcUrl: 'https://api-paseo.n.dwellir.com/eb7baebf-d116-4163-bcfb-d1dca6c9f7ed',
-    wsUrl: 'wss://api-paseo.n.dwellir.com/eb7baebf-d116-4163-bcfb-d1dca6c9f7ed',
-    // Endpoints alternativos para fallback en caso de fallo
+    name: 'Asset Hub Paseo',
+    chainId: '1000', // Asset Hub parachain ID
+    // Endpoints de Asset Hub en Paseo testnet
+    rpcUrl: 'https://sys.ibp.network/asset-hub-paseo',
+    wsUrl: 'wss://sys.ibp.network/asset-hub-paseo',
+    // Endpoints alternativos para fallback
     wsUrlFallbacks: [
-      'wss://paseo.rpc.amforc.com:443', // Amforc
-      'wss://paseo-rpc.dwellir.com', // Alternativo Dwellir
-      'wss://paseo.luckyfriday.io', // Lucky Friday
-      'wss://paseo.public.curie.radiumblock.co', // RadiumBlock
+      'wss://sys.ibp.network/asset-hub-paseo',
     ],
     rpcUrlFallbacks: [
-      'https://paseo.rpc.amforc.com:443',
-      'https://rpc.paseo.lightclient-io.io',
+      'https://paseo-asset-hub-rpc.polkadot.io',
     ],
-    explorerUrl: 'https://paseo.subscan.io',
+    explorerUrl: 'https://assethub-paseo.subscan.io',
     faucetUrl: 'https://faucet.polkadot.io/',
     isTestnet: true,
     nativeCurrency: {
@@ -191,6 +188,8 @@ export const UI_CONFIG = {
     borderRadius: '12px',
   },
 }
+
+
 
 
 

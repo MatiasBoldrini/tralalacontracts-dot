@@ -7,7 +7,13 @@
       "Bash(npx tsx:*)",
       "Bash(npx node test-rococo-connection.mjs)",
       "Bash(npx node:*)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:polkadot.js.org)",
+      "WebFetch(domain:substrate.stackexchange.com)",
+      "WebFetch(domain:learn.onpop.io)",
+      "WebFetch(domain:github.com)",
+      "Bash(node test-weight-v2-deployment.mjs:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

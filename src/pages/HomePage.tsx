@@ -40,6 +40,14 @@ const HomePage: React.FC = () => {
   const [contractCode, setContractCode] = useState<string>('')
   const [deployedContract, setDeployedContract] = useState<any>(null)
 
+  // Handler mejorado para recibir código del ContractBuilder
+  const handleCodeGenerated = (code: string) => {
+    console.log('🏠 HomePage recibió código del ContractBuilder')
+    console.log('📄 Tamaño del código:', code.length, 'caracteres')
+    console.log('📝 Preview:', code.substring(0, 150) + '...')
+    setContractCode(code)
+  }
+
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1)
   }
@@ -74,12 +82,13 @@ const HomePage: React.FC = () => {
       case 1:
         return (
           <ContractBuilder
-            onCodeGenerated={setContractCode}
+            onCodeGenerated={handleCodeGenerated}
             onNext={handleNext}
             onBack={handleBack}
           />
         )
       case 2:
+        console.log('🚀 Renderizando DeploymentPanel con código:', contractCode.length, 'caracteres')
         return (
           <DeploymentPanel
             contractCode={contractCode}

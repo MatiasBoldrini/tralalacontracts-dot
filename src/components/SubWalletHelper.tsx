@@ -72,7 +72,7 @@ const SubWalletHelper: React.FC = () => {
             1. En SubWallet, ve a "Settings" → "Networks"
           </Typography>
           <Typography variant="body2" gutterBottom>
-            2. Busca "Polkadot Hub" o "Paseo"
+            2. Busca "Pop Network" o "Paseo"
           </Typography>
           <Typography variant="body2" gutterBottom>
             3. Activa la red si no está habilitada
@@ -197,6 +197,8 @@ const SubWalletHelper: React.FC = () => {
 }
 
 export default SubWalletHelper
+
+
 
 
 

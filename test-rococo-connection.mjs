@@ -1,44 +1,69 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 
-async function testRococoConnection() {
-  console.log('🔌 Testing Rococo TestNet connection...\n');
+const endpoints = [
+  {
+    name: 'Polkadot Official',
+    url: 'wss://rococo-contracts-rpc.polkadot.io'
+  },
+  {
+    name: 'OnFinality WebSocket',
+    url: 'wss://contracts-rococo.api.onfinality.io/public-ws'
+  },
+  {
+    name: 'Polkadot Official HTTP',
+    url: 'https://rococo-contracts-rpc.polkadot.io'
+  },
+  {
+    name: 'OnFinality HTTP',
+    url: 'https://contracts-rococo.api.onfinality.io/public'
+  },
+];
 
+async function testConnection(endpoint) {
   try {
-    console.log('Connecting to wss://rococo-rpc.polkadot.io');
-    const wsProvider = new WsProvider('wss://rococo-rpc.polkadot.io');
+    console.log(`\n🔄 Testando: ${endpoint.name}`);
+    console.log(`   URL: ${endpoint.url}`);
 
-    const api = await ApiPromise.create({ provider: wsProvider });
+    const provider = new WsProvider(endpoint.url, 2000); // 2 second timeout
+    const api = await ApiPromise.create({ provider });
 
-    console.log('✅ WebSocket connection successful!');
-    console.log('✅ API instance created');
-
-    // Check chain info
     const chain = await api.rpc.system.chain();
-    console.log('✅ Connected to chain: ' + chain.toString());
+    const name = await api.rpc.system.name();
+    const version = await api.runtimeVersion.specVersion;
 
-    // Check if contracts pallet is available
-    const hasContractsPallet = api.tx.contracts !== undefined;
-    if (hasContractsPallet) {
-      console.log('✅ Contracts pallet IS available');
-    } else {
-      console.log('❌ Contracts pallet NOT available');
+    console.log(`✅ CONECTADO!`);
+    console.log(`   Chain: ${chain}`);
+    console.log(`   Name: ${name}`);
+    console.log(`   Version: ${version}`);
+
+    // Verificar si tiene el pallet de contratos
+    try {
+      const hasContracts = api.tx.contracts !== undefined;
+      console.log(`   Has Contracts Pallet: ${hasContracts ? '✓ YES' : '✗ NO'}`);
+    } catch (e) {
+      console.log(`   Has Contracts Pallet: ✗ NO`);
     }
 
-    // Get current block info
-    const header = await api.rpc.chain.getHeader();
-    console.log('✅ Current block: ' + header.number.toString());
-
-    // Check network properties
-    const props = await api.rpc.system.properties();
-    console.log('✅ Network properties:', props.toString());
-
     await api.disconnect();
-    console.log('\n✅ All tests passed! Rococo testnet is working.');
-    process.exit(0);
+    return true;
   } catch (error) {
-    console.error('\n❌ Connection failed:', error.message);
-    process.exit(1);
+    console.log(`❌ FALLÓ: ${error.message}`);
+    return false;
   }
 }
 
-testRococoConnection();
+async function main() {
+  console.log('='.repeat(60));
+  console.log('TESTING ROCOCO CONTRACTS ENDPOINTS');
+  console.log('='.repeat(60));
+
+  for (const endpoint of endpoints) {
+    await testConnection(endpoint);
+  }
+
+  console.log('\n' + '='.repeat(60));
+  console.log('TEST COMPLETE');
+  console.log('='.repeat(60));
+}
+
+main().catch(console.error);

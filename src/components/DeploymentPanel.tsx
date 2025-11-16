@@ -29,6 +29,7 @@ import {
 import { WalletAccount } from '../types'
 import { usePolkadotApi, useContractDeployment } from '../hooks/usePolkadot'
 import { estimateDeploymentGas } from '../utils/deploymentUtils'
+import { POLKADOT_CONFIG } from '../config/polkadot'
 
 interface DeploymentPanelProps {
   contractCode: string
@@ -38,11 +39,11 @@ interface DeploymentPanelProps {
 
 const DEPLOYMENT_STEPS = [
   'Validar código',
-  'Compilar contrato',
-  'Estimar gas',
+  'Generar configuración',
+  'Estimar costos',
   'Firmar transacción',
-  'Enviar a blockchain',
-  'Confirmar deployment',
+  'Crear asset en blockchain',
+  'Confirmar creación',
 ]
 
 const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
@@ -55,6 +56,7 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
 
   const [contractName, setContractName] = useState('MiContrato')
   const [gasEstimate, setGasEstimate] = useState<string>('')
+  const [estimatedFee, setEstimatedFee] = useState<string>('')
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -78,6 +80,12 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
       // Calcular estimación de gas
       const estimate = estimateDeploymentGas(contractCode)
       setGasEstimate(estimate.gasLimit)
+
+      // Calcular fee estimado en PAS (tokens de Polkadot Asset Hub)
+      // Fee típico = gas_limit * 0.000001 PAS por unidad de gas (aproximación)
+      const gasLimitNumber = parseInt(estimate.gasLimit.replace(/,/g, ''))
+      const feeInPAS = (gasLimitNumber * 0.000001).toFixed(6)
+      setEstimatedFee(feeInPAS)
     }
   }, [contractCode])
 
@@ -96,8 +104,21 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
   }, [deployedContract])
 
   const handleDeploy = async () => {
+    console.log('🚀 handleDeploy iniciado')
+    console.log('📋 Estado actual:')
+    console.log('  - account:', account ? 'conectado' : 'NO CONECTADO')
+    console.log('  - contractCode length:', contractCode.length)
+    console.log('  - isApiConnected:', isApiConnected)
+    console.log('  - api:', api ? 'disponible' : 'NO DISPONIBLE')
+
     if (!account) {
       console.error('❌ Wallet no conectada')
+      return
+    }
+
+    if (!contractCode || contractCode.trim().length === 0) {
+      console.error('❌ No hay código del contrato para deployar')
+      alert('No hay código del contrato. Por favor, regresa y genera un contrato primero.')
       return
     }
 
@@ -111,11 +132,15 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
       return
     }
 
-    if (!api.tx || !api.tx.contracts) {
-      console.error('❌ Pallet de contratos no disponible en esta red')
+    if (!api.tx || !api.tx.assets) {
+      console.error('❌ Pallet de assets no disponible en esta red. Verifica que estés en Asset Hub.')
+      alert('Esta red no soporta creación de assets. Por favor conecta a Asset Hub Paseo.')
       return
     }
 
+    console.log('✅ Pallet de assets detectado, continuando...')
+
+    console.log('✅ Todas las validaciones pasadas, iniciando deployment...')
     setCurrentStep(0)
     const result = await deployContract(contractCode, contractName, account, api)
 
@@ -147,17 +172,17 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
   const getStepDescription = (index: number) => {
     switch (index) {
       case 0:
-        return 'Verificando sintaxis y estructura del código Solidity'
+        return 'Verificando configuración del token/asset'
       case 1:
-        return 'Compilando código Solidity a bytecode (solc)'
+        return 'Generando parámetros para creación de asset'
       case 2:
-        return 'Calculando el costo de gas para el deployment'
+        return 'Calculando costos de la transacción'
       case 3:
         return 'Esperando firma de la transacción en tu wallet'
       case 4:
-        return 'Enviando transacción a la red Polkadot'
+        return 'Creando asset/token en Asset Hub'
       case 5:
-        return 'Confirmando que el contrato se desplegó correctamente'
+        return 'Confirmando que el asset se creó correctamente'
       default:
         return ''
     }
@@ -173,7 +198,14 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
         {/* Estado de la conexión API */}
         {!isApiConnected && (
           <Alert severity="warning" icon={<InfoIcon />}>
-            Conectando a Paseo Testnet... Por favor espera.
+            Conectando a {POLKADOT_CONFIG.network.name}... Por favor espera.
+          </Alert>
+        )}
+
+        {/* Debug: Mostrar si no hay código */}
+        {(!contractCode || contractCode.length === 0) && (
+          <Alert severity="error" icon={<ErrorIcon />}>
+            ⚠️ No se detectó código del contrato. Por favor regresa al paso anterior y genera un contrato primero.
           </Alert>
         )}
 
@@ -182,21 +214,21 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
           <CardContent sx={{ p: 4 }}>
             <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <CloudUpload color="primary" />
-              Desplegar Contrato en Testnet
+              Crear Token/Asset en Asset Hub
             </Typography>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <Box>
                 <Paper sx={{ p: 2, backgroundColor: 'grey.50' }}>
                   <Typography variant="h6" gutterBottom>
-                    Información del Contrato
+                    Información del Token/Asset
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Typography variant="body2">
                       <strong>Nombre:</strong> {contractName}
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Red:</strong> Paseo Testnet
+                      <strong>Red:</strong> {POLKADOT_CONFIG.network.name}
                     </Typography>
                     <Typography variant="body2">
                       <strong>Cuenta:</strong> {account?.address.slice(0, 10)}...{account?.address.slice(-10)}
@@ -213,6 +245,9 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Typography variant="body2">
                       <strong>Gas estimado:</strong> {gasEstimate || 'Calculando...'}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Fee estimado:</strong> {estimatedFee ? `~${estimatedFee} ${POLKADOT_CONFIG.network.nativeCurrency.symbol}` : 'Calculando...'}
                     </Typography>
                     <Typography variant="body2">
                       <strong>Red:</strong> Testnet - Sin costo real
@@ -303,7 +338,13 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
             startIcon={<CloudUpload />}
             size="large"
           >
-            {isDeploying ? 'Desplegando...' : 'Desplegar en Testnet'}
+            {isDeploying
+              ? 'Creando Asset...'
+              : !contractCode
+                ? 'Sin configuración - Genera primero'
+                : !isApiConnected
+                  ? 'Conectando a red...'
+                  : 'Crear Token en Asset Hub'}
           </Button>
         </Box>
       </Box>
@@ -313,7 +354,7 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
         <DialogTitle sx={{ textAlign: 'center' }}>
           <CheckCircle sx={{ fontSize: 60, color: 'success.main', mb: 2 }} />
           <Typography variant="h5">
-            ¡Contrato Desplegado Exitosamente!
+            ¡Token/Asset Creado Exitosamente!
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -339,7 +380,7 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
               </Paper>
 
               <Alert severity="info">
-                El contrato se ha desplegado en Paseo Testnet. Puedes verificar la transacción en el explorador.
+                El token/asset se ha creado exitosamente en {POLKADOT_CONFIG.network.name}. Puedes verificar la transacción en el explorador.
               </Alert>
 
               <Box sx={{ mt: 2 }}>
@@ -369,4 +410,6 @@ const DeploymentPanel: React.FC<DeploymentPanelProps> = ({
 }
 
 export default DeploymentPanel
+
+
 

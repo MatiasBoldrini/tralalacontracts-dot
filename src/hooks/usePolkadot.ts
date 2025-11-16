@@ -124,7 +124,7 @@ export const usePolkadotApi = () => {
         const isLastAttempt = i === endpoints.length - 1
 
         try {
-          console.log(`🔗 Intentando conectar a Paseo con endpoint ${i + 1}/${endpoints.length}: ${endpoint.substring(0, 50)}...`)
+          console.log(`🔗 Intentando conectar a ${POLKADOT_CONFIG.network.name} con endpoint ${i + 1}/${endpoints.length}: ${endpoint.substring(0, 50)}...`)
 
           const wsProvider = new WsProvider(endpoint, 3000) // 3s timeout per endpoint
 
@@ -157,7 +157,7 @@ export const usePolkadotApi = () => {
       }
 
       // Si llegamos aquí, todos los endpoints fallaron
-      const errorMessage = `No se pudo conectar a ningún endpoint de Paseo. Último error: ${lastError?.message || 'Desconocido'}`
+      const errorMessage = `No se pudo conectar a ningún endpoint de ${POLKADOT_CONFIG.network.name}. Último error: ${lastError?.message || 'Desconocido'}`
       console.error(errorMessage)
       setError(errorMessage)
       setIsConnected(false)
@@ -342,23 +342,50 @@ export const useContractDeployment = () => {
             setDeploymentProgress({ step: 3, message: 'Estimando gas requerido...' })
             const gasEstimate = estimateDeploymentGas(contractCode)
 
-            // Paso 4: Construir transacción
-            setDeploymentProgress({ step: 4, message: 'Preparando transacción...' })
+            // Paso 4: Construir transacción para crear Asset/Token
+            setDeploymentProgress({ step: 4, message: 'Preparando creación de asset...' })
             if (!api) {
               throw new Error('API de Polkadot no disponible. Intenta reconectarte.')
             }
 
-            // Para Polkadot, construimos una transacción de deployment
-            // Usando el pallet de contratos - convertir gasLimit a BigInt
-            const gasLimitBigInt = BigInt(gasEstimate.gasLimit)
-            const deployTx = api.tx.contracts.instantiate(
-              0, // value: sin transferencia de fondos
-              gasLimitBigInt, // gas_limit
-              null, // storage_deposit_limit
-              compilationResult.bytecode, // code
-              [], // data (constructor arguments - empty)
-              [] // salt (para deterministic addresses)
-            )
+            // Verificar que el pallet de assets esté disponible
+            if (!api.tx.assets) {
+              throw new Error('El pallet de assets no está disponible en esta red. Verifica que estés conectado a Asset Hub.')
+            }
+
+            // Generar un ID de asset único basado en timestamp
+            const assetId = Math.floor(Date.now() / 1000) // Unix timestamp como ID
+
+            console.log(`📦 Creando asset con ID: ${assetId}`)
+            console.log(`📝 Nombre del token: ${contractInfo.name}`)
+
+            // Crear transacción batch para:
+            // 1. Crear el asset
+            // 2. Configurar metadata (nombre, símbolo)
+            const minBalance = 1 // Mínimo balance requerido
+            const decimals = 12 // Decimales estándar de Polkadot
+
+            const deployTx = api.tx.utility.batchAll([
+              // Crear asset
+              api.tx.assets.create(
+                assetId,
+                account.address, // admin (owner)
+                minBalance
+              ),
+              // Configurar metadata
+              api.tx.assets.setMetadata(
+                assetId,
+                contractInfo.name, // nombre
+                contractInfo.name.substring(0, 5).toUpperCase(), // símbolo (primeras 5 letras)
+                decimals
+              ),
+              // Mint initial supply opcional
+              api.tx.assets.mint(
+                assetId,
+                account.address,
+                1000000000000 // 1000 tokens con 12 decimales
+              )
+            ])
 
             // Paso 5: Firmar y enviar transacción
             setDeploymentProgress({ step: 5, message: 'Esperando firma en wallet...' })
@@ -379,7 +406,7 @@ export const useContractDeployment = () => {
             const unsubscribe = await deployTx.signAndSend(
               account.address,
               { signer },
-              ({ status, events, dispatchInfo }: any) => {
+              async ({ status, events, dispatchInfo }: any) => {
                 if (status.isInBlock) {
                   setDeploymentProgress({ step: 7, message: 'Confirmando en blockchain...' })
                   blockHash = status.asInBlock.toString()
@@ -395,24 +422,34 @@ export const useContractDeployment = () => {
                 }
 
                 if (status.isFinalized) {
-                  blockNumber = api.registry.createType('BlockNumber', blockHash).toNumber?.() || 0
+                  // Actualizar blockHash con el hash finalizado
+                  blockHash = status.asFinalized.toString()
+
+                  // Obtener el número de bloque desde el header del bloque
+                  try {
+                    const signedBlock = await api.rpc.chain.getBlock(status.asFinalized)
+                    blockNumber = signedBlock.block.header.number.toNumber()
+                  } catch (err) {
+                    console.warn('No se pudo obtener el número de bloque:', err)
+                    blockNumber = 0
+                  }
                   setDeploymentProgress({ step: 8, message: 'Deployment completado!' })
 
-                  // Crear objeto de contrato desplegado
+                  // Crear objeto de asset creado
                   const deployed: DeployedContract = {
-                    address: txHash, // En Polkadot, usamos txHash como identificador
+                    address: `Asset ID: ${assetId}`, // ID del asset creado
                     transactionHash: txHash,
                     blockNumber: blockNumber,
                     blockHash,
                     gasUsed,
-                    explorerUrl: `${POLKADOT_CONFIG.network.explorerUrl}/tx/${txHash}`,
+                    explorerUrl: `${POLKADOT_CONFIG.network.explorerUrl}/extrinsic/${txHash}`,
                     contract: {
                       name: contractInfo.name,
                       code: contractCode,
                       abi: compilationResult.abi,
                       features: [],
                     },
-                    compiledBytecode: compilationResult.bytecode,
+                    compiledBytecode: `Asset ID: ${assetId}`,
                     deploymentTime: Date.now() - startTime,
                     status: 'success',
                   }
@@ -462,6 +499,8 @@ export const useContractDeployment = () => {
     reset,
   }
 }
+
+
 
 
 
