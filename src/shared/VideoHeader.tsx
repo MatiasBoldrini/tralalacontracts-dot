@@ -35,7 +35,7 @@ const VideoHeader: React.FC = () => {
             objectFit: 'cover',
           }}
         >
-          <source src="/tralala.mp4" type="video/mp4" />
+          <source src="/Tiburón_Feliz_en_la_Compu.mp4" type="video/mp4" />
           Tu navegador no soporta el elemento de video.
         </video>
 

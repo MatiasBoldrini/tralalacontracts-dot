@@ -27,27 +27,11 @@ export const POLKADOT_CONFIG = {
   // Configuración de wallets soportados
   supportedWallets: [
     {
-      id: 'talisman',
-      name: 'Talisman',
-      description: 'Wallet nativa para el ecosistema Polkadot',
-      icon: '🦄',
-      recommended: true,
-      downloadUrl: 'https://talisman.xyz/',
-    },
-    {
-      id: 'polkadot-js',
-      name: 'Polkadot.js',
-      description: 'Extensión oficial de Polkadot',
-      icon: '🔗',
-      recommended: true,
-      downloadUrl: 'https://polkadot.js.org/extension/',
-    },
-    {
       id: 'subwallet',
       name: 'SubWallet',
       description: 'Wallet multi-cadena para Polkadot',
       icon: '🔐',
-      recommended: false,
+      recommended: true,
       downloadUrl: 'https://subwallet.app/',
     },
   ],

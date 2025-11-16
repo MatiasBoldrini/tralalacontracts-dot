@@ -27,25 +27,11 @@ interface WalletConnectionProps {
 
 const SUPPORTED_WALLETS = [
   {
-    id: 'talisman',
-    name: 'Talisman',
-    description: 'Wallet nativa para el ecosistema Polkadot',
-    icon: '🦄',
-    recommended: true,
-  },
-  {
-    id: 'polkadot-js',
-    name: 'Polkadot.js',
-    description: 'Extensión oficial de Polkadot',
-    icon: '🔗',
-    recommended: true,
-  },
-  {
     id: 'subwallet',
     name: 'SubWallet',
     description: 'Wallet multi-cadena para Polkadot',
     icon: '🔐',
-    recommended: false,
+    recommended: true,
   },
 ]
 
@@ -93,7 +79,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onConnect, onNext }
       console.log('Extensiones detectadas:', extensions)
       
       if (extensions.length === 0) {
-        throw new Error('No se encontraron extensiones de wallet instaladas. Asegúrate de tener Talisman, Polkadot.js o SubWallet instalados y habilitados.')
+        throw new Error('No se encontraron extensiones de wallet instaladas. Asegúrate de tener SubWallet instalado y habilitado.')
       }
 
       // Esperar un poco para que las extensiones se inicialicen
@@ -367,9 +353,7 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ onConnect, onNext }
                 Para usar Tralala Contracts necesitas instalar una extensión de wallet:
               </Typography>
               <Box component="ul" sx={{ mt: 2, pl: 2 }}>
-                <li><strong>Talisman:</strong> Ve a <a href="https://talisman.xyz/" target="_blank" rel="noopener noreferrer">talisman.xyz</a> e instala la extensión</li>
-                <li><strong>Polkadot.js:</strong> Ve a <a href="https://polkadot.js.org/extension/" target="_blank" rel="noopener noreferrer">polkadot.js.org/extension</a></li>
-                <li><strong>SubWallet:</strong> Ve a <a href="https://subwallet.app/" target="_blank" rel="noopener noreferrer">subwallet.app</a></li>
+                <li><strong>SubWallet:</strong> Ve a <a href="https://subwallet.app/" target="_blank" rel="noopener noreferrer">subwallet.app</a> e instala la extensión</li>
               </Box>
               <Typography variant="body2" sx={{ mt: 2 }}>
                 <strong>Después de instalar:</strong> Recarga esta página y asegúrate de que la extensión esté habilitada.
